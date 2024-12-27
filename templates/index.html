@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GDP Comparison Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800">
+    <div class="container mx-auto py-10">
+        <h1 class="text-3xl font-bold text-center mb-6">GDP Comparison Dashboard</h1>
+        <p class="text-center text-gray-600 mb-10">
+            (Free accounts have access to the following countries: Mexico, New Zealand, Sweden, Thailand.)
+        </p>
+
+        <!-- Form -->
+        <div class="flex justify-center">
+            <form id="compare-form" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4 w-full max-w-md">
+                <div class="mb-4">
+                    <label for="country1" class="block text-gray-700 font-bold mb-2">Country 1:</label>
+                    <input type="text" id="country1" name="country1" placeholder="e.g., Mexico"
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+                <div class="mb-4">
+                    <label for="country2" class="block text-gray-700 font-bold mb-2">Country 2:</label>
+                    <input type="text" id="country2" name="country2" placeholder="e.g., Sweden"
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+                <div class="flex items-center justify-between">
+                    <button type="button" onclick="compare()"
+                        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                        Compare
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Chart -->
+        <div id="chart" class="mt-12 bg-white shadow-md rounded" style="height: 500px; display: none;"></div>
+    </div>
+
+    <script>
+        async function compare() {
+            const country1 = document.getElementById("country1").value.trim().toLowerCase();
+            const country2 = document.getElementById("country2").value.trim().toLowerCase();
+
+            // Check if both countries are entered
+            if (!country1 || !country2) {
+                alert("Please enter both countries.");
+                return;
+            }
+
+            try {
+                const response = await fetch("/compare", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ countries: [country1, country2] }),
+                });
+
+                const data = await response.json();
+
+                // Check if data is returned correctly
+                if (!data || Object.keys(data).length === 0) {
+                    alert("No data found for the given countries.");
+                    return;
+                }
+
+                const traces = Object.keys(data).map(country => ({
+                    x: data[country].map(entry => entry.DateTime),
+                    y: data[country].map(entry => entry.Value),
+                    name: country,
+                    type: "scatter",
+                }));
+
+                // Layout configuration with titles
+                const layout = {
+                    title: 'GDP Comparison Over Time',
+                    xaxis: { title: 'Date' },
+                    yaxis: { title: 'GDP Value' },
+                };
+
+                // Show the chart div
+                document.getElementById("chart").style.display = "block";
+
+                // Plot the chart
+                Plotly.newPlot("chart", traces, layout);
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                alert("An error occurred while fetching the data.");
+            }
+        }
+    </script>
+</body>
+</html>
